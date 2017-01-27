@@ -49,7 +49,7 @@ def rabbitcallback(ch, method, properties, body):
             # we assume this is probably a brightness call
             if params[1] == 'brightness':
                 targetgroup.brightness = params[2]/100.0 #incoming brighness is done as a percentage
-    elif (params[0] == 'door') | (params[1] == 'pir'):
+    elif (params[0] == 'door') | (params[0] == 'pir'):
         with hall_lock:
             hall.on = True
             # set a timer to go off after 15 seconds
