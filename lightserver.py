@@ -18,19 +18,21 @@ spare_room = bridge.add_group(2, 'spare_room', WHITE)
 hall_lock = threading.Lock()
 hall_counter = 0
 
-
-def timehandler(locker, counter, group):
-    with locker:
-        if counter == 0:
+def timehandler(selflocker,  group):
+    global hall_counter
+    global hall
+    with selflocker:
+        if hall_counter == 0:
             print "Error, attempt to decrement zero counter"
         else:
-            counter = counter -1
-            if counter == 0:
+            hall_counter = hall_counter -1
+            if hall_counter == 0:
                 # this is the last event outstanding so we can turn the group off
-                group.off = True
-
-
-
+               # group.off = True
+               hall.On=False
+               print "Counter empty"
+            else:
+                print("Counter decremented {}".format(hall_counter))
 
 
 def rabbitcallback(ch, method, properties, body):
@@ -38,22 +40,25 @@ def rabbitcallback(ch, method, properties, body):
     # parse the command
     params = body.split()
     group = params[0]
+    global hall
     if group in bridge.groups:
         # we have a valid group
         targetgroup = bridge.groups[group]
         if params[1] == 'on':
             targetgroup.on = True
         elif params[1] == 'off':
-            targetgroup.off = True
+            targetgroup.on = False
         else:
             # we assume this is probably a brightness call
             if params[1] == 'brightness':
                 targetgroup.brightness = params[2]/100.0 #incoming brighness is done as a percentage
     elif (params[0] == 'door') | (params[0] == 'pir'):
         with hall_lock:
+            print "incrementing counter hall counter {} +1".format(hall_counter)           
             hall.on = True
             # set a timer to go off after 15 seconds
-            threading.Timer(15.0, timehandler, hall_lock, hall_counter, hall).start()
+            hall_counter=hall_counter + 1
+            threading.Timer(15.0, timehandler, args=(hall_lock, group)).start()
     else:
         print 'Unknown command {}'.format(params[0])
 
