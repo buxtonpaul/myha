@@ -1,0 +1,12 @@
+bedroom ON
+door
+landinglight ON
+pir
+landinglight BRIGHT 50
+spareroom ON
+landinglight WHITE
+
+# example stream of messages, can be run on dos using type commands.txt | python lightsender.py -
+# these lines should be rejected due to not being parsed properly
+
+

@@ -39,6 +39,9 @@ def rabbitcallback(ch, method, properties, body):
     print " [x] Received %r" % body
     # parse the command
     params = body.split()
+    if len(params) == 0:
+        print "Empty Command string received"
+        return
     group = params[0]
 
     global lights
@@ -46,6 +49,9 @@ def rabbitcallback(ch, method, properties, body):
     global hall_counter
     if group in lights:
         # we have a valid group
+        if len(params) <2:
+            print "No parameters provided for group {}".format(params[0])
+            return
         targetgroup = lights[group]
         if params[1] == 'on':
             targetgroup.lighton()
