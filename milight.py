@@ -119,33 +119,34 @@ class MiLight(object):
     def lighton(self):
         ''' On command'''
         # construct the command and send it
-        self.docommand("ON")
+        self.docommand(["ON"])
     def off(self):
         ''' Off command'''
-        self.docommand("OFF")
+        self.docommand(["OFF"])
         # construct the command and send it
 
-    def docommand(self, command, value='none'):
+    def docommand(self, commandlist):
         ''' doCommand'''
-        if command in self.commands:
-            commandstring = self.commands.get(command)
+        if commandlist[0] in self.commands:
+            commandstring = self.commands.get(commandlist[0])
             checksum = sum(commandstring) & 0xff
-            sendcmd = self.bridge.buildCmd(commandstring, self.zone, checksum)
+            sendcmd = self.bridge.buildcmd(commandstring, self.zone, checksum)
             dolog("Sending Command:{}".format(hexstr(bytearray(sendcmd))))
-            datareceived, addr = self.bridge.sndCommand(bytearray(sendcmd))
+            datareceived, addr = self.bridge.sndcommand(bytearray(sendcmd))
             dolog("Received Reponse:{}:{}".format(addr, hexstr(bytearray(datareceived))))
-        elif command in self.varcommands:
-            if value != 'none':
-                commandstring = self.varcommands.get(command)+[value] + [0x00, 0x00, 0x00]
+        elif commandlist[0] in self.varcommands:
+            if len(commandlist) >1:
+                value=int(commandlist[1])          
+                commandstring = self.varcommands.get(commandlist[0])+[value] + [0x00, 0x00, 0x00]
                 checksum = sum(commandstring) & 0xff
-                sendcmd = self.bridge.buildCmd(commandstring, self.zone, checksum)
+                sendcmd = self.bridge.buildcmd(commandstring, self.zone, checksum)
                 dolog("Sending Command:{}".format(hexstr(bytearray(sendcmd))))
-                datareceived, addr = self.bridge.sndCommand(bytearray(sendcmd))
+                datareceived, addr = self.bridge.sndcommand(bytearray(sendcmd))
                 dolog("Received Reponse:{}".format(hexstr(bytearray(datareceived))))
             else:
                 dolog("Request to do variable command with no param provided")
         else:
-            dolog("Command {} not found".format(command))
+            dolog("Command {} not found".format(commandlist[0]))
 
 class BridgeLight(MiLight):
     ''' The Bridge Light object'''
@@ -188,7 +189,7 @@ class White(MiLight):
 
 
 if __name__ == "__main__":
-
+    MAXTRIES = 5
     BRIDGE = Milightbridge(UDP_MAX_TRY=MAXTRIES)
   #  bridge = milight_bridge(IBOX_IP="192.168.0.34", UDP_MAX_TRY=maxtries)
     MYLIGHT = BridgeLight("mylight", 0, BRIDGE)
@@ -196,7 +197,7 @@ if __name__ == "__main__":
     for icount in range(0, MAXTRIES):
         try:
             MYLIGHT.off()
-            MYLIGHT.docommand('BRIGHT', 51)
+            MYLIGHT.docommand(['BRIGHT', '51'])
             break
 
         except socket.timeout:

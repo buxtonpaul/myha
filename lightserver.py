@@ -2,17 +2,17 @@
 import pika
 import time, threading
 
-from limitlessled.bridge import Bridge
-from limitlessled.group.rgbw import RGBW
-from limitlessled.group.white import WHITE
+from  milight import Milightbridge,BridgeLight,White,RGBW
+maxtries=3
+#bridge = Milightbridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
+bridge = Milightbridge( UDP_MAX_TRY=maxtries)
+nightlight = BridgeLight("nightlight", 1, bridge)
+spareroom = White("spareroom",1,bridge)
+landinglight = RGBW("landinglight",2,bridge)
+bedroom = RGBW("bedroom",1,bridge)
 
-bridge = Bridge('192.168.0.34')
-bedroom  =bridge.add_group(1, 'bedroom', RGBW)
-# A group number can support two groups as long as the types differ
-nightlight = bridge.add_group(1, 'nightlight', BRIDGE_LED)
-hall = bridge.add_group(2, 'hall', RGBW)
-spare_room = bridge.add_group(2, 'spare_room', WHITE)
-
+#create a dictionary storing names vs light objects
+lights={"nightlight":nightlight, "spareroom":spareroom, "landinglight":landinglight, "bedroom":bedroom}
 
 # create a single lock that is used by all threads
 hall_lock = threading.Lock()
@@ -20,7 +20,7 @@ hall_counter = 0
 
 def timehandler(selflocker,  group):
     global hall_counter
-    global hall
+    global landinglight
     with selflocker:
         if hall_counter == 0:
             print "Error, attempt to decrement zero counter"
@@ -29,7 +29,7 @@ def timehandler(selflocker,  group):
             if hall_counter == 0:
                 # this is the last event outstanding so we can turn the group off
                # group.off = True
-               hall.On=False
+               landinglight.off()
                print "Counter empty"
             else:
                 print("Counter decremented {}".format(hall_counter))
@@ -40,24 +40,26 @@ def rabbitcallback(ch, method, properties, body):
     # parse the command
     params = body.split()
     group = params[0]
-    global hall
-    if group in bridge.groups:
+
+    global lights
+    global landinglight
+    global hall_counter
+    if group in lights:
         # we have a valid group
-        targetgroup = bridge.groups[group]
+        targetgroup = lights[group]
         if params[1] == 'on':
-            targetgroup.on = True
+            targetgroup.lighton()
         elif params[1] == 'off':
-            targetgroup.on = False
+            targetgroup.off()
         else:
-            # we assume this is probably a brightness call
-            if params[1] == 'brightness':
-                targetgroup.brightness = params[2]/100.0 #incoming brighness is done as a percentage
+            # Let the light handle calls it knows about!
+            targetgroup.docommand(params[1:])
     elif (params[0] == 'door') | (params[0] == 'pir'):
         with hall_lock:
-            print "incrementing counter hall counter {} +1".format(hall_counter)           
-            hall.on = True
+            print "incrementing counter hall counter {} +1".format(hall_counter)
+            landinglight.lighton()
             # set a timer to go off after 15 seconds
-            hall_counter=hall_counter + 1
+            hall_counter = hall_counter + 1
             threading.Timer(15.0, timehandler, args=(hall_lock, group)).start()
     else:
         print 'Unknown command {}'.format(params[0])

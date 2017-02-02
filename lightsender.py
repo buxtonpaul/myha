@@ -9,7 +9,7 @@ channel.queue_declare(queue='lightserver')
 
 channel.basic_publish(exchange='',
                       routing_key='lightserver',
-                      body='door')
+                      body='bedroom BRIGHT 50')
 print(" [x] Sent 'Hello World!'")
 connection.close()
 
