@@ -70,7 +70,7 @@ class Milightv6bridge(object):
                 self.lightsession = True
                 break
             except socket.timeout:
-                print "Timeout on session start: ", hexstr(START_SESSION)
+                dolog("Timeout on session start: {}".format(hexstr(START_SESSION)))
                 dolog("Milight Script: Timeout on command... doing a retry {}".format(count))
                 self.sockserver.close()
                 self.lightsession = False
@@ -99,13 +99,13 @@ class Milightv6bridge(object):
     def close(self):
         ''' CLose the milight socker'''
         if self.live & self.lightsession:
-            print "closing socket"
+            dolog("closing socket")
             self.sockserver.close()
         return
 
 
 
-class MiLight(object):
+class MiLightv6(object):
     ''' An object for the milight abstract milight
     Attributes:
     name: name of the light represented by this case
@@ -131,36 +131,33 @@ class MiLight(object):
 
     def docommand(self, commandlist):
         ''' doCommand'''
-        try:
-            if commandlist[0] in self.commands:
-                commandstring = self.commands.get(commandlist[0])
+        if commandlist[0] in self.commands:
+            commandstring = self.commands.get(commandlist[0])
+            checksum = sum(commandstring) & 0xff
+            sendcmd = self.bridge.buildcmd(commandstring, self.zone, checksum)
+            dolog("Sending Command:{}".format(hexstr(bytearray(sendcmd))))
+            datareceived, addr = self.bridge.sndcommand(bytearray(sendcmd))
+            dolog("Received Reponse:{}:{}".format(addr, hexstr(bytearray(datareceived))))
+        elif commandlist[0] in self.varcommands:
+            if len(commandlist) >1:
+                value=int(commandlist[1])          
+                commandstring = self.varcommands.get(commandlist[0])+[value] + [0x00, 0x00, 0x00]
                 checksum = sum(commandstring) & 0xff
                 sendcmd = self.bridge.buildcmd(commandstring, self.zone, checksum)
                 dolog("Sending Command:{}".format(hexstr(bytearray(sendcmd))))
                 datareceived, addr = self.bridge.sndcommand(bytearray(sendcmd))
-                dolog("Received Reponse:{}:{}".format(addr, hexstr(bytearray(datareceived))))
-            elif commandlist[0] in self.varcommands:
-                if len(commandlist) >1:
-                    value=int(commandlist[1])          
-                    commandstring = self.varcommands.get(commandlist[0])+[value] + [0x00, 0x00, 0x00]
-                    checksum = sum(commandstring) & 0xff
-                    sendcmd = self.bridge.buildcmd(commandstring, self.zone, checksum)
-                    dolog("Sending Command:{}".format(hexstr(bytearray(sendcmd))))
-                    datareceived, addr = self.bridge.sndcommand(bytearray(sendcmd))
-                    dolog("Received Reponse:{}".format(hexstr(bytearray(datareceived))))
-                else:
-                    dolog("Request to do variable command with no param provided")
+                dolog("Received Reponse:{}".format(hexstr(bytearray(datareceived))))
             else:
-                dolog("Command {} not found".format(commandlist[0]))
-        except:
-            print "Probably tried calling a bridge that doesnt have sndcommand"
+                dolog("Request to do variable command with no param provided")
+        else:
+            dolog("Command {} not found".format(commandlist[0]))
         
     def colour(self,colour):
         ''' Base class command to handle colour'''
         dolog("Attempt to use color for class that does not support it")
         return
 
-class BridgeLight(MiLight):
+class V6BridgeLight(MiLightv6):
     ''' The Bridge Light object'''
     commands = {
         "ON":    [0x31, 0x00, 0x00, 0x00, 0x03, 0x03, 0x00, 0x00, 0x00],
@@ -178,7 +175,7 @@ class BridgeLight(MiLight):
         # RGB ### string , HueSV, HUE angle
         # Convert to the Hue value supported byt the bridge and transmit it
         
-class RGBW(MiLight):
+class V6RGBW(MiLightv6):
     ''' The RGBW Light object'''
     commands = {
         "ON" :   [0x31, 0x00, 0x00, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00],
@@ -191,7 +188,7 @@ class RGBW(MiLight):
         "MODE"     : [0x31, 0x00, 0x00, 0x07, 0x04]
     }
 
-class White(MiLight):
+class V6White(MiLightv6):
     ''' The White Light milight class implementaiton '''
     commands = {
         "ON"        : [0x31, 0x00, 0x00, 0x01, 0x01, 0x07, 0x00, 0x00, 0x00],
@@ -211,7 +208,7 @@ if __name__ == "__main__":
     MAXTRIES = 5
     BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
   #  bridge = milight_bridge(IBOX_IP="192.168.0.34", UDP_MAX_TRY=maxtries)
-    MYLIGHT = BridgeLight("mylight", 0, BRIDGE)
+    MYLIGHT = V6BridgeLight("mylight", 0, BRIDGE)
 
     for icount in range(0, MAXTRIES):
         try:

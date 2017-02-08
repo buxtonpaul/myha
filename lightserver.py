@@ -2,7 +2,7 @@
 import pika
 import time, threading
 
-from  milight import Milightv6bridge,BridgeLight,White,RGBW
+from  milightv6 import Milightv6bridge,V6BridgeLight,V6White,V6RGBW
 maxtries=3
 #bridge = Milightbridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
 # parse a config file to get
@@ -10,10 +10,10 @@ maxtries=3
 
 
 bridge = Milightv6bridge( UDP_MAX_TRY=maxtries)
-nightlight = BridgeLight("nightlight", 1, bridge)
-spareroom = White("spareroom",1,bridge)
-landinglight = RGBW("landinglight",2,bridge)
-bedroom = RGBW("bedroom",1,bridge)
+nightlight = V6BridgeLight("nightlight", 1, bridge)
+spareroom = V6White("spareroom",1,bridge)
+landinglight = V6RGBW("landinglight",2,bridge)
+bedroom = V6RGBW("bedroom",1,bridge)
 
 #create a dictionary storing names vs light objects
 lights={"nightlight":nightlight, "spareroom":spareroom, "landinglight":landinglight, "bedroom":bedroom}
