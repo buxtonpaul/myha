@@ -2,7 +2,7 @@
 ''' milight module'''
 import socket
 from abc import ABCMeta
-from milightcmds import START_SESSION
+
 from utils import dolog, hexstr
 
 
@@ -17,7 +17,10 @@ CMDLINE_INFO = (
 # all bulbs will provide this behaviour
 
 
-
+START_SESSION = [0x20, 0x00, 0x00, 0x00, 0x16, 0x02, 0x62,
+                                0x3A, 0xD5, 0xED, 0xA3, 0x01, 0xAE, 0x08,
+                                0x2D, 0x46, 0x61, 0x41, 0xA7, 0xF6, 0xDC,
+                                0xAF, 0xD3, 0xE6, 0x00, 0x00, 0x1E]
 
 class Milightv6bridge(object):
     ''' milight bridge class'''
