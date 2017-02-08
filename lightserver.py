@@ -2,10 +2,14 @@
 import pika
 import time, threading
 
-from  milight import Milightbridge,BridgeLight,White,RGBW
+from  milight import Milightv6bridge,BridgeLight,White,RGBW
 maxtries=3
 #bridge = Milightbridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
-bridge = Milightbridge( UDP_MAX_TRY=maxtries)
+# parse a config file to get
+# Bridges, zones and lights
+
+
+bridge = Milightv6bridge( UDP_MAX_TRY=maxtries)
 nightlight = BridgeLight("nightlight", 1, bridge)
 spareroom = White("spareroom",1,bridge)
 landinglight = RGBW("landinglight",2,bridge)
