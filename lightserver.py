@@ -4,25 +4,24 @@ import time, threading
 
 from  milightv6 import Milightv6bridge,V6BridgeLight,V6White,V6RGBW
 maxtries=3
-#bridge = Milightbridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
+#bridge = Milightv6bridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=maxtries)
 # parse a config file to get
 # Bridges, zones and lights
 
 
-bridge = Milightv6bridge( UDP_MAX_TRY=maxtries)
-nightlight = V6BridgeLight("nightlight", 1, bridge)
-spareroom = V6White("spareroom",1,bridge)
-landinglight = V6RGBW("landinglight",2,bridge)
-bedroom = V6RGBW("bedroom",1,bridge)
-
-#create a dictionary storing names vs light objects
-lights={"nightlight":nightlight, "spareroom":spareroom, "landinglight":landinglight, "bedroom":bedroom}
+bridge = Milightv6bridge(UDP_MAX_TRY=maxtries)
+nightlight = bridge.addbulb("BRIDGE", "nightlight", 1)
+spareroom = bridge.addbulb("WHITE", "spareroom", 1)
+landinglight = bridge.addbulb("RGBW", "landinglight", 2)
+bedroom = bridge.addbulb("RGBW", "bedroom", 1)
+lights = bridge.bulbs
 
 # create a single lock that is used by all threads
 hall_lock = threading.Lock()
 hall_counter = 0
 
-def timehandler(selflocker,  group):
+def timehandler(selflocker, group):
+    ''' function to handle timer event'''
     global hall_counter
     global landinglight
     with selflocker:
@@ -53,7 +52,7 @@ def rabbitcallback(ch, method, properties, body):
     global hall_counter
     if group in lights:
         # we have a valid group
-        if len(params) <2:
+        if len(params) < 2:
             print "No parameters provided for group {}".format(params[0])
             return
         targetgroup = lights[group]
