@@ -6,15 +6,28 @@ import sys
 
 
 
+
 line_count = 0
 
 def sendcommand(line):
     global line_count
-    line_count += 1
-    channel.basic_publish(exchange='',
-                          routing_key='lightserver', body=line.rstrip())
-    print " [x] Sent {}".format(line.rstrip())
-
+    retries = 3
+    global connection,channel   
+    while retries > 0:
+        retries =retries -1
+        
+        line_count += 1
+        try:
+            channel.basic_publish(exchange='',
+                                  routing_key='lightserver', body=line.rstrip())
+        except pika.exceptions.ConnectionClosed:
+            print "Connection was closed, retrying..."
+            connection = pika.BlockingConnection(pika.ConnectionParameters(
+host='localhost'))
+            channel = connection.channel()
+        else:
+            print " [x] Sent {}".format(line.rstrip())
+            break
 def read_from_stdin():
     global line_count
     for line in sys.stdin:
