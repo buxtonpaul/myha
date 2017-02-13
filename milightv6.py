@@ -46,20 +46,38 @@ class Milightv6bridge(object):
             UDP_TIMEOUT '''
         self.iboxip = IBOX_IP
         self.udp_port_send = UDP_PORT_SEND
+        self.udp_max_try = UDP_MAX_TRY
+        self.udp_timeout = UDP_TIMEOUT
         if IBOX_IP == 'fake':
             self.live = False
             dolog("Starting up with fake settings")
-        dolog("Trying to connect to server {} on port {}".format(self.iboxip, UDP_PORT_SEND))
-        for count in range(0, UDP_MAX_TRY):
+        return
+
+    def sndcommand(self, message,sockserver):
+        ''' Send a list of hex values as a message '''
+        dolog("Sending: {}".format(hexstr(message)))
+        if self.live & self.lightsession:
+            sockserver.sendto(bytearray(message), (self.iboxip, self.udp_port_send))
+            datareceived, addr = sockserver.recvfrom(1024)
+            dolog("Receiving response: {}".format(hexstr(bytearray(datareceived), ' ')))
+
+            return(datareceived, addr)
+        else:
+            return([0x1, 0x2, 0x3], 1234)
+        return
+    
+    def send(self,message,zone):
+        dolog("Trying to connect to server {} on port {}".format(self.iboxip, self.udp_port_send))
+        for count in range(0, self.udp_max_try):
             try:
                 if self.live:
-                    self.sockserver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    self.sockserver.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    self.sockserver.bind(('', self.UDP_PORT_RECEIVE))
-                    self.sockserver.settimeout(UDP_TIMEOUT)
-                    self.sockserver.sendto(bytearray(START_SESSION),
+                    sockserver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sockserver.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sockserver.bind(('', self.UDP_PORT_RECEIVE))
+                    sockserver.settimeout(self.udp_timeout)
+                    sockserver.sendto(bytearray(START_SESSION),
                                            (self.iboxip, self.udp_port_send))
-                    datareceived, addr = self.sockserver.recvfrom(1024)
+                    datareceived, addr = sockserver.recvfrom(1024)
                     datareceived = bytearray(datareceived)
                 else:
                     dolog("Fake it")
@@ -67,33 +85,33 @@ class Milightv6bridge(object):
                                               0x23, 0xF5, 0x7A, 0xD4, 0x69, 0xF0, 0x3C, 0x23, 0x00,
                                               0x01, 0x05, 0x00, 0x00])
                     addr = 0x123
+                    sockserver="NULL" # should not be used!
                 self.sessionid = (datareceived[19], datareceived[20])
                 dolog("Received session message: {}:{}".format(addr, hexstr(datareceived, ' ')))
                 dolog("SessionID: {}".format(self.sessionid))
                 self.lightsession = True
+                ret=self.sndcommand(self.buildcmd(message,zone),sockserver)
+
                 break
             except socket.timeout:
                 dolog("Timeout on session start: {}".format(hexstr(START_SESSION)))
                 dolog("Milight Script: Timeout on command... doing a retry {}".format(count))
-                self.sockserver.close()
+                sockserver.close()
                 self.lightsession = False
                 continue
-        return
 
-    def sndcommand(self, message):
-        ''' Send a list of hex values as a message '''
-        if self.live & self.lightsession:
-            self.sockserver.sendto(bytearray(message), (self.iboxip, self.udp_port_send))
-            datareceived, addr = self.sockserver.recvfrom(1024)
-            dolog("Receiving response: {}".format(hexstr(bytearray(datareceived), ' ')))
-            return(datareceived, addr)
+        if self.live:               
+            sockserver.close()
         else:
-            return([0x1, 0x2, 0x3], 1234)
-        return
-
-    def buildcmd(self, bulbcommand, zone, checksum):
+            print "Fake socket open, sent command, closing socket"
+     
+        
+        return ret
+        
+    def buildcmd(self, bulbcommand, zone):
         ''' buildcmd'''
         preamble = [0x80, 0x00, 0x00, 0x00, 0x11]
+        checksum = sum(bulbcommand) & 0xff
         ret = (preamble + [self.sessionid[0], self.sessionid[1], 0x00, self.cyclenr, 0x00] +
                bulbcommand + [zone, 0x00, checksum])
         self.cyclenr = self.cyclenr + 1
@@ -101,9 +119,6 @@ class Milightv6bridge(object):
 
     def close(self):
         ''' CLose the milight socker'''
-        if self.live & self.lightsession:
-            dolog("closing socket")
-            self.sockserver.close()
         return
 
 
@@ -136,25 +151,20 @@ class MiLightv6(object):
         ''' doCommand'''
         if commandlist[0] in self.commands:
             commandstring = self.commands.get(commandlist[0])
-            checksum = sum(commandstring) & 0xff
-            sendcmd = self.bridge.buildcmd(commandstring, self.zone, checksum)
-            dolog("Sending Command:{}".format(hexstr(bytearray(sendcmd))))
-            datareceived, addr = self.bridge.sndcommand(bytearray(sendcmd))
-            dolog("Received Reponse:{}:{}".format(addr, hexstr(bytearray(datareceived))))
+            
         elif commandlist[0] in self.varcommands:
             if len(commandlist) >1:
                 value=int(commandlist[1])          
                 commandstring = self.varcommands.get(commandlist[0])+[value] + [0x00, 0x00, 0x00]
-                checksum = sum(commandstring) & 0xff
-                sendcmd = self.bridge.buildcmd(commandstring, self.zone, checksum)
-                dolog("Sending Command:{}".format(hexstr(bytearray(sendcmd))))
-                datareceived, addr = self.bridge.sndcommand(bytearray(sendcmd))
-                dolog("Received Reponse:{}".format(hexstr(bytearray(datareceived))))
+                
             else:
                 dolog("Request to do variable command with no param provided")
         else:
             dolog("Command {} not found".format(commandlist[0]))
-        
+            return
+
+        datareceived, addr = self.bridge.send(commandstring,self.zone)
+        dolog("Received Reponse:{}:{}".format(addr, hexstr(bytearray(datareceived))))
     def colour(self,colour):
         ''' Base class command to handle colour'''
         dolog("Attempt to use color for class that does not support it")
