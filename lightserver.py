@@ -5,12 +5,12 @@ import time, threading
 
 from  milightv6 import Milightv6bridge
 MAXTRIES = 3
-#bridge = Milightv6bridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
+BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
 # parse a config file to get
 # Bridges, zones and lights
 
 
-BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
+#BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
 BRIDGE.addbulb("BRIDGE", "nightlight", 1)
 BRIDGE.addbulb("WHITE", "spareroom", 1)
 BRIDGE.addbulb("RGBW", "bedroom", 1)
@@ -24,11 +24,11 @@ HALL_COUNTER = 0
 
 def timehandler(selflocker, group):
     ''' function to handle timer event'''
+    global HALL_COUNTER #  we update the gobal count hall counter here
     with selflocker:
         if HALL_COUNTER == 0:
             print "Error, attempt to decrement zero counter"
         else:
-            global HALL_COUNTER #  we update the gobal count hall counter here
             HALL_COUNTER = HALL_COUNTER -1
             if HALL_COUNTER == 0:
                 # this is the last event outstanding so we can turn the group off
