@@ -18,9 +18,9 @@ CMDLINE_INFO = (
 
 
 START_SESSION = [0x20, 0x00, 0x00, 0x00, 0x16, 0x02, 0x62,
-                                0x3A, 0xD5, 0xED, 0xA3, 0x01, 0xAE, 0x08,
-                                0x2D, 0x46, 0x61, 0x41, 0xA7, 0xF6, 0xDC,
-                                0xAF, 0xD3, 0xE6, 0x00, 0x00, 0x1E]
+                 0x3A, 0xD5, 0xED, 0xA3, 0x01, 0xAE, 0x08,
+                 0x2D, 0x46, 0x61, 0x41, 0xA7, 0xF6, 0xDC,
+                 0xAF, 0xD3, 0xE6, 0x00, 0x00, 0x1E]
 
 class Milightv6bridge(object):
     ''' milight bridge class'''
@@ -32,6 +32,8 @@ class Milightv6bridge(object):
     cyclenr = 0
     udp_port_send = 0
     UDP_PORT_RECEIVE = 55054,        # Port for receiving
+    bulbs={}
+    bulbtypes=["RGBW", "WHITE", "BRIDGE"]
 
     ''' Miligght bridge class to handle controlling a milight bridge'''
     def __init__(self, IBOX_IP="fake",        # iBox IP address
@@ -42,7 +44,7 @@ class Milightv6bridge(object):
             IBOX_IP
             UDP_PORT_SEND
             UDP_PORT_RECEIVE
-            UDP_MAX_TRY     
+            UDP_MAX_TRY
             UDP_TIMEOUT '''
         self.iboxip = IBOX_IP
         self.udp_port_send = UDP_PORT_SEND
@@ -83,7 +85,7 @@ class Milightv6bridge(object):
                     dolog("Fake it")
                     datareceived = bytearray([0x28, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0xAC, 0xCF,
                                               0x23, 0xF5, 0x7A, 0xD4, 0x69, 0xF0, 0x3C, 0x23, 0x00,
-                                              0x01, 0x05, 0x00, 0x00])
+                                              0x01, 0x2e, 0x00, 0x00])
                     addr = 0x123
                     sockserver="NULL" # should not be used!
                 self.sessionid = (datareceived[19], datareceived[20])
@@ -108,10 +110,11 @@ class Milightv6bridge(object):
         
         return ret
         
+
     def buildcmd(self, bulbcommand, zone):
         ''' buildcmd'''
         preamble = [0x80, 0x00, 0x00, 0x00, 0x11]
-        checksum = sum(bulbcommand) & 0xff
+        checksum = (sum(bulbcommand)+zone) & 0xff
         ret = (preamble + [self.sessionid[0], self.sessionid[1], 0x00, self.cyclenr, 0x00] +
                bulbcommand + [zone, 0x00, checksum])
         self.cyclenr = self.cyclenr + 1
@@ -121,7 +124,24 @@ class Milightv6bridge(object):
         ''' CLose the milight socker'''
         return
 
-
+    def addbulb(self, bulbtype, bulbname, zone):
+        '''Adds a bulb to the bridge'''
+        # first check the bulb name doesnt exist already
+        if bulbname in self.bulbs:
+            dolog("Attempt to add bulb {} which already exists".format(bulbname))
+            return
+        # Try and add the bulb assuming it is one we know about
+        if bulbtype in self.bulbtypes:
+            if bulbtype == 'RGBW':
+                self.bulbs[bulbname] = V6RGBW(bulbname, zone, self)
+            elif bulbtype == 'WHITE':
+                self.bulbs[bulbname] = V6White(bulbname, zone, self)
+            else:
+                self.bulbs[bulbname] = V6BridgeLight(bulbname, zone, self)
+            return self.bulbs[bulbname]
+        else:
+            dolog("Attempt to add a bulb type we do not support {}".format(bulbtype))
+        return
 
 class MiLightv6(object):
     ''' An object for the milight abstract milight
@@ -151,12 +171,10 @@ class MiLightv6(object):
         ''' doCommand'''
         if commandlist[0] in self.commands:
             commandstring = self.commands.get(commandlist[0])
-            
         elif commandlist[0] in self.varcommands:
-            if len(commandlist) >1:
-                value=int(commandlist[1])          
+            if len(commandlist) > 1:
+                value = int(commandlist[1])
                 commandstring = self.varcommands.get(commandlist[0])+[value] + [0x00, 0x00, 0x00]
-                
             else:
                 dolog("Request to do variable command with no param provided")
         else:
