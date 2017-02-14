@@ -31,7 +31,8 @@ class Milightv6bridge(object):
     iboxip = ""
     cyclenr = 0
     udp_port_send = 0
-    UDP_PORT_RECEIVE = 55054        # Port for receiving
+    udp_port_receive = 0
+    
     bulbs={}
     bulbtypes=["RGBW", "WHITE", "BRIDGE"]
 
@@ -39,17 +40,20 @@ class Milightv6bridge(object):
     def __init__(self, IBOX_IP="fake",        # iBox IP address
                  UDP_PORT_SEND=5987,            # Port for sending
                  UDP_MAX_TRY=5,                 # Max sending max value is 256
-                 UDP_TIMEOUT=5):
+                 UDP_TIMEOUT=5,
+                 UDP_PORT_RECEIVE = 55054):        # Port for receiving)
         ''' Constructor function. params are
             IBOX_IP
             UDP_PORT_SEND
             UDP_PORT_RECEIVE
             UDP_MAX_TRY
-            UDP_TIMEOUT '''
+            UDP_TIMEOUT 
+            UDP_PORT_RECEIVE'''
         self.iboxip = IBOX_IP
         self.udp_port_send = UDP_PORT_SEND
         self.udp_max_try = UDP_MAX_TRY
         self.udp_timeout = UDP_TIMEOUT
+        self.udp_port_receive = UDP_PORT_RECEIVE
         if IBOX_IP == 'fake':
             self.live = False
             dolog("Starting up with fake settings")
@@ -57,16 +61,15 @@ class Milightv6bridge(object):
 
     def sndcommand(self, message,sockserver):
         ''' Send a list of hex values as a message '''
-        dolog("Sending: {}".format(hexstr(message)))
+        #dolog("Sending: {}".format(hexstr(message)))
         if self.live & self.lightsession:
             sockserver.sendto(bytearray(message), (self.iboxip, self.udp_port_send))
             datareceived, addr = sockserver.recvfrom(1024)
-            dolog("Receiving response: {}".format(hexstr(bytearray(datareceived), ' ')))
-
-            return(datareceived, addr)
+            
         else:
-            return([0x1, 0x2, 0x3], 1234)
-        return
+            datareceived, addr = ([0x1, 0x2, 0x3], 1234)
+        #dolog("Receiving response: {}".format(hexstr(bytearray(datareceived), ' ')))
+        return(datareceived, addr)
     
     def send(self,message,zone):
         dolog("Trying to connect to server {} on port {}".format(self.iboxip, self.udp_port_send))
@@ -82,15 +85,15 @@ class Milightv6bridge(object):
                     datareceived, addr = sockserver.recvfrom(1024)
                     datareceived = bytearray(datareceived)
                 else:
-                    dolog("Fake it")
+                    #dolog("Fake it")
                     datareceived = bytearray([0x28, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0xAC, 0xCF,
                                               0x23, 0xF5, 0x7A, 0xD4, 0x69, 0xF0, 0x3C, 0x23, 0x00,
                                               0x01, 0x2e, 0x00, 0x00])
                     addr = 0x123
                     sockserver="NULL" # should not be used!
                 self.sessionid = (datareceived[19], datareceived[20])
-                dolog("Received session message: {}:{}".format(addr, hexstr(datareceived, ' ')))
-                dolog("SessionID: {}".format(self.sessionid))
+                #dolog("Received session message: {}:{}".format(addr, hexstr(datareceived, ' ')))
+                #dolog("SessionID: {}".format(self.sessionid))
                 self.lightsession = True
                 ret=self.sndcommand(self.buildcmd(message,zone),sockserver)
 
@@ -103,9 +106,11 @@ class Milightv6bridge(object):
                 continue
 
         if self.live:               
+            dolog("Closing Socket")
             sockserver.close()
         else:
-            print "Fake socket open, sent command, closing socket"
+            dolog "Fake socket open, sent command, closing socket"
+            pass
      
         
         return ret
@@ -160,12 +165,10 @@ class MiLightv6(object):
         self.zone = zone
     def lighton(self):
         ''' On command'''
-        # construct the command and send it
         self.docommand(["ON"])
     def off(self):
         ''' Off command'''
         self.docommand(["OFF"])
-        # construct the command and send it
 
     def docommand(self, commandlist):
         ''' doCommand'''
@@ -180,9 +183,9 @@ class MiLightv6(object):
         else:
             dolog("Command {} not found".format(commandlist[0]))
             return
-
+        dolog("Running command {} on {}".format(commandlist[0],self.name))
         datareceived, addr = self.bridge.send(commandstring,self.zone)
-        dolog("Received Reponse:{}:{}".format(addr, hexstr(bytearray(datareceived))))
+#        dolog("Received Reponse:{}:{}".format(addr, hexstr(bytearray(datareceived))))
     def colour(self,colour):
         ''' Base class command to handle colour'''
         dolog("Attempt to use color for class that does not support it")
@@ -235,10 +238,25 @@ class V6White(MiLightv6):
 
 
 
+#import yaml
+
+#bridges={}
+
+#with open ("config.yml",'r') as ymlfile:
+#    cfg=yaml.load(ymlfile)
+
+#    for bridgeid in cfg:
+#        print bridgeid
+        # check for a bridgetype and ip address, if it exists then we can store the 
+#        bridges.append(bridgeid,bridge['bridgip'])
+        
+        
+
+
 if __name__ == "__main__":
     MAXTRIES = 5
-    #BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
-    BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34", UDP_MAX_TRY=MAXTRIES)
+    BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
+    #BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34", UDP_MAX_TRY=MAXTRIES)
     #MYLIGHT = BRIDGE.addbulb("RGBW", "landinglight", 2)
     MYLIGHT = V6BridgeLight("mylight", 0, BRIDGE)
 

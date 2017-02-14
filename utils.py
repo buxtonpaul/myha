@@ -2,7 +2,7 @@
 ''' utility modiule'''
 def dolog(msg):
     ''' Log a message'''
-    print "DEBUG: ", msg
+    print "DEBUG: {}".format(msg)
 
 def hexstr(vals, sep=', '):
     ''' Print the provided list as a hex string, using

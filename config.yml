@@ -1,0 +1,31 @@
+bridges:
+    bridge1:
+        bridgetype: mifi6
+        bridgeip: fake
+        rgbw:
+            bedroom : 1
+            hall : 1
+            landing : 1
+        white:
+            spareroom : 1
+        bridge:
+            nightlight : 0
+    guest:
+        bridgetype: mifi6
+        bridgeip: fake
+        rgbw:
+            bedroom2 : 1
+            hall2 : 1
+            landing2 : 1
+        white:
+            spareroom2 : 1
+        bridge:
+            nightlight2 : 0
+    
+    triggers:
+        door:
+            light: bedroom
+            time: 90
+        pihat:
+            light: nightlight
+            time: 5
