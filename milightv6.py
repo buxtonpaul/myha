@@ -31,7 +31,7 @@ class Milightv6bridge(object):
     iboxip = ""
     cyclenr = 0
     udp_port_send = 0
-    UDP_PORT_RECEIVE = 55054,        # Port for receiving
+    UDP_PORT_RECEIVE = 55054        # Port for receiving
     bulbs={}
     bulbtypes=["RGBW", "WHITE", "BRIDGE"]
 
@@ -237,14 +237,17 @@ class V6White(MiLightv6):
 
 if __name__ == "__main__":
     MAXTRIES = 5
-    BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
-  #  bridge = milight_bridge(IBOX_IP="192.168.0.34", UDP_MAX_TRY=maxtries)
+    #BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
+    BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34", UDP_MAX_TRY=MAXTRIES)
+    #MYLIGHT = BRIDGE.addbulb("RGBW", "landinglight", 2)
     MYLIGHT = V6BridgeLight("mylight", 0, BRIDGE)
 
     for icount in range(0, MAXTRIES):
         try:
-            MYLIGHT.off()
-            MYLIGHT.docommand(['BRIGHT', '51'])
+            MYLIGHT.lighton()
+            #MYLIGHT.off()
+
+            #MYLIGHT.docommand(['BRIGHT', '51'])
             break
 
         except socket.timeout:
