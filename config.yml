@@ -4,14 +4,14 @@ bridges:
         bridgeip: fake
         rgbw:
             bedroom : 1
-            hall : 1
-            landing : 1
+            hall : 2
+            landing : 2
         white:
             spareroom : 1
         bridge:
             nightlight : 0
     guest:
-        bridgetype: mifi6
+        bridgetype: mifi5
         bridgeip: fake
         rgbw:
             bedroom2 : 1
@@ -22,10 +22,10 @@ bridges:
         bridge:
             nightlight2 : 0
     
-    triggers:
-        door:
-            light: bedroom
-            time: 90
-        pihat:
-            light: nightlight
-            time: 5
+triggers:
+    door:
+        light: bedroom
+        time: 90
+    pihat:
+        light: nightlight
+        time: 5
