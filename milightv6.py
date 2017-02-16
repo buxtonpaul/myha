@@ -1,6 +1,7 @@
 #!/usr/bin/python
 ''' milight module'''
 import socket
+import threading
 from abc import ABCMeta
 
 from utils import dolog, hexstr
@@ -78,7 +79,7 @@ class Milightv6bridge(object):
                 if self.live:
                     sockserver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     sockserver.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    sockserver.bind(('', self.UDP_PORT_RECEIVE))
+                    sockserver.bind(('', self.udp_port_receive))
                     sockserver.settimeout(self.udp_timeout)
                     sockserver.sendto(bytearray(START_SESSION),
                                            (self.iboxip, self.udp_port_send))
@@ -105,16 +106,12 @@ class Milightv6bridge(object):
                 self.lightsession = False
                 continue
 
-        if self.live:               
+        if self.live:
             dolog("Closing Socket")
             sockserver.close()
         else:
-            dolog "Fake socket open, sent command, closing socket"
-            pass
-     
-        
+            dolog("Fake socket open, sent command, closing socket")
         return ret
-        
 
     def buildcmd(self, bulbcommand, zone):
         ''' buildcmd'''
@@ -163,12 +160,31 @@ class MiLightv6(object):
         self.bridge = bridge
         self.name = name
         self.zone = zone
+        self.refcount=0
+        self.lock=threading.Lock()
+
     def lighton(self):
         ''' On command'''
         self.docommand(["ON"])
     def off(self):
         ''' Off command'''
         self.docommand(["OFF"])
+
+    def incrementref(self):
+        ''' Increment the internal counter and turn on the light!'''
+        with self.lock:
+            self.refcount = self.refcount +1
+            self.lighton()
+        
+    def decrementref(self):
+        ''' Decrement the internal counter and turn off the light if it reaches zero'''
+        
+        with self.lock:
+            if self.refcount > 0:
+                self.refcount = self.refcount -1
+            if self.refcount == 0:
+                self.off()
+        
 
     def docommand(self, commandlist):
         ''' doCommand'''

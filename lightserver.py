@@ -1,43 +1,35 @@
 #!/usr/bin/env python
 ''' A module to expose control of the milightv6 bridge'''
 import pika
-import time, threading
+import time
+import threading
+from milightv6 import Milightv6bridge
 
-from  milightv6 import Milightv6bridge
 MAXTRIES = 3
-BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
+#BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
 # parse a config file to get
 # Bridges, zones and lights
 
 
-#BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
+BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
 BRIDGE.addbulb("BRIDGE", "nightlight", 1)
 BRIDGE.addbulb("WHITE", "spareroom", 1)
 BRIDGE.addbulb("RGBW", "bedroom", 1)
 LANDINGLIGHT = BRIDGE.addbulb("RGBW", "landinglight", 2)
 
+
 LIGHTS = BRIDGE.bulbs
 
-# create a single lock that is used by all threads
-HALL_LOCK = threading.Lock()
-HALL_COUNTER = 0
+triggers={}
 
-def timehandler(selflocker, group):
+triggers["door"]="landinglight"
+
+def timehandler(group):
     ''' function to handle timer event'''
-    global HALL_COUNTER #  we update the gobal count hall counter here
-    with selflocker:
-        if HALL_COUNTER == 0:
-            print "Error, attempt to decrement zero counter"
-        else:
-            HALL_COUNTER = HALL_COUNTER -1
-            if HALL_COUNTER == 0:
-                # this is the last event outstanding so we can turn the group off
-                # group.off = True
-                LANDINGLIGHT.off()
-                print "Counter empty"
-            else:
-                print "Counter decremented {}".format(HALL_COUNTER)
-
+    if group in LIGHTS:
+        LIGHTS[group].decrementref()
+    else:
+        print("Unknown group called")
 
 def rabbitcallback(ch, method, properties, body):
     print " [x] Received %r" % body
@@ -62,14 +54,9 @@ def rabbitcallback(ch, method, properties, body):
         else:
             # Let the light handle calls it knows about!
             targetgroup.docommand(params[1:])
-    elif (params[0] == 'door') | (params[0] == 'pir'):
-        with HALL_LOCK:
-            global HALL_COUNTER #  we will be updating the hall counter here
-            print "incrementing counter hall counter {} +1".format(HALL_COUNTER)
-            LANDINGLIGHT.lighton()
-            # set a timer to go off after 15 seconds
-            HALL_COUNTER = HALL_COUNTER + 1
-            threading.Timer(15.0, timehandler, args=(HALL_LOCK,group)).start()
+    elif group in triggers:
+        LIGHTS[triggers[group]].incrementref()
+        threading.Timer(15.0, timehandler, args=[triggers[group]]).start()
     else:
         print 'Unknown command {}'.format(params[0])
 
