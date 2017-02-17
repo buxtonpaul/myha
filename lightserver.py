@@ -57,6 +57,12 @@ def rabbitcallback(ch, method, properties, body):
     elif group in triggers:
         LIGHTS[triggers[group]].incrementref()
         threading.Timer(15.0, timehandler, args=[triggers[group]]).start()
+    elif group == "threads":
+        # print out the currently running threads
+        threads=threading.enumerate()
+        for cur in threads:
+            print "Known thread {}".format(cur)
+
     else:
         print 'Unknown command {}'.format(params[0])
 
