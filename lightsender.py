@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import pika
 import sys
-
+import string
 
 
 
@@ -49,9 +49,10 @@ channel = connection.channel()
 channel.queue_declare(queue='lightserver')
 
 if __name__ == "__main__":
-    if '-' in sys.argv:
-        read_from_stdin()
-    else:
-        prompt_user()
-
+#    if '-' in sys.argv:
+#        read_from_stdin()
+#    else:
+#        prompt_user()
+    line=string.join(sys.argv[1:])
+    sendcommand(line)
 connection.close()

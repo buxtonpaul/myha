@@ -3,26 +3,10 @@
 import pika
 import time
 import threading
+import yaml
+
 from milightv6 import Milightv6bridge
 
-MAXTRIES = 3
-#BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
-# parse a config file to get
-# Bridges, zones and lights
-
-
-BRIDGE = Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
-BRIDGE.addbulb("BRIDGE", "nightlight", 1)
-BRIDGE.addbulb("WHITE", "spareroom", 1)
-BRIDGE.addbulb("RGBW", "bedroom", 1)
-LANDINGLIGHT = BRIDGE.addbulb("RGBW", "landinglight", 2)
-
-
-LIGHTS = BRIDGE.bulbs
-
-triggers={}
-
-triggers["door"]="landinglight"
 
 def timehandler(group):
     ''' function to handle timer event'''
@@ -55,8 +39,8 @@ def rabbitcallback(ch, method, properties, body):
             # Let the light handle calls it knows about!
             targetgroup.docommand(params[1:])
     elif group in triggers:
-        LIGHTS[triggers[group]].incrementref()
-        threading.Timer(15.0, timehandler, args=[triggers[group]]).start()
+        LIGHTS[triggers[group]["light"]].incrementref()
+        threading.Timer(int(triggers[group]["time"]), timehandler, args=[triggers[group]["light"]]).start()
     elif group == "threads":
         # print out the currently running threads
         threads=threading.enumerate()
@@ -72,6 +56,60 @@ def rabbitcallback(ch, method, properties, body):
 
 
 
+
+
+
+MAXTRIES = 3
+#BRIDGE = Milightv6bridge(IBOX_IP="192.168.0.34",UDP_MAX_TRY=MAXTRIES)
+# parse a config file to get
+# Bridges, zones and lights
+
+LIGHTS={}
+
+sections = {}
+
+with open("config.yml", 'r') as ymlfile:
+    cfg = yaml.load(ymlfile)
+    ymlfile.close()
+    if cfg["bridges"]:
+        for bridgekey, bridgeval in cfg["bridges"].items():
+            # check if the bridge is one we can handle then add it!
+            if bridgeval["bridgetype"] == "mifi6":
+                print "Bridge {} @ {}".format(bridgekey, bridgeval["bridgeip"])
+                curbridge=Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
+                for key, val in bridgeval.items():
+                    if key == "rgbw":
+                        print "Found RGBW lights {}".format(val)
+                        for bulb, zone in val.items():
+                            zonenum = int(zone)
+                            print " Bulb {} with zone {} added to bridge {}".format(bulb, zonenum, bridgekey)
+                            curlight=curbridge.addbulb("RGBW",bulb,zonenum)
+                            LIGHTS[bulb]=curlight
+                    if key == "white":
+                        print "Found White lights {}".format(val)
+                        for bulb, zone in val.items():
+                            zonenum = int(zone)
+                            print " Bulb {} with zone {} added to bridge {}".format(bulb, zonenum, bridgekey)
+                            curlight=curbridge.addbulb("WHITE",bulb,zonenum)
+                            LIGHTS[bulb]=curlight
+ 
+                    if key == "bridge":
+                        print "Found bridge light {}".format(val)
+                        for bulb, zone in val.items():
+                            zonenum = int(zone)
+                            print " Bulb {} with zone {} added to {}".format(bulb, zonenum, bridgekey)
+                            curlight=curbridge.addbulb("BRIDGE",bulb,zonenum)
+                            LIGHTS[bulb]=curlight
+                    
+
+            else:
+                print "Unknown bridgetype {}".format(bridgeval["bridgetype"])
+    
+    if cfg["triggers"]:
+        # We have a section with triggers
+        triggers=cfg["triggers"]
+    else:
+        triggers = {}
 
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(
