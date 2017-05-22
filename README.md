@@ -2,7 +2,8 @@
 Simple home automation scripting using various libraries
 
 
-Depends on limitlesled much of the code is inspired by / lifted from https://github.com/soldag/python-limitlessled.git
+Depends on limitlesled much of the code is inspired by / lifted from https://github.com/soldag/python-limitlessled.git also some of the version3 bridge handling from https://github.com/LumKitty/MiLight3
+
 
 and Pika
 pip install pika
