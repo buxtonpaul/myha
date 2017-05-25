@@ -34,13 +34,14 @@ host=host))
         else:
             print " [x] Sent {}".format(line.rstrip())
             break
+
 def read_from_stdin():
     global line_count
     for line in sys.stdin:
         messge=line.split()
-        if mssge[0] in codes:
-            sendcommand(codes[mssge[0])
-        else
+        if (messge[0] in codes):
+            sendcommand(codes[messge[0]])
+        else:
             sendcommand(line)
 
 def prompt_user():
