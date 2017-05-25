@@ -39,8 +39,8 @@ def read_from_stdin():
     global line_count
     for line in sys.stdin:
         messge=line.split()
-        if (messge[0] in codes):
-            sendcommand(codes[messge[0]])
+        if (messge[1] in codes):
+            sendcommand(codes[messge[1]])
         else:
             sendcommand(line)
 
