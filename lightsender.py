@@ -36,13 +36,34 @@ host=host))
             break
 
 def read_from_stdin():
-    global line_count
-    for line in sys.stdin:
-        messge=line.split()
-        if (messge[1] in codes):
-            sendcommand(codes[messge[1]])
-        else:
-            sendcommand(line)
+# If there's input ready, do something, else do something
+# else. Note timeout is zero so select won't block at all.
+    k = 0
+    try:
+        buff = ''
+        while True:
+            buff += sys.stdin.read(1)
+            if buff.endswith('\n'):
+                print buff[:-1]
+                line = buff[:-1]
+                messge=line.split()
+                if (messge[1] in codes):
+                    sendcommand(codes[messge[1]])
+                else:
+                    sendcommand(line)
+
+                buff = ''
+                k = k + 1
+    except KeyboardInterrupt:
+        sys.stdout.flush()
+        pass
+
+
+
+
+
+
+        
 
 def prompt_user():
     print 'Type "quit" to exit.'
