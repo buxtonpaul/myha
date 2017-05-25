@@ -5,6 +5,12 @@ import string
 
 
 
+codes={
+
+    "837344":"doorbell",
+    "5592405":"pir",
+    "12346":"door"
+}
 
 
 line_count = 0
@@ -23,7 +29,7 @@ def sendcommand(line):
         except pika.exceptions.ConnectionClosed:
             print "Connection was closed, retrying..."
             connection = pika.BlockingConnection(pika.ConnectionParameters(
-host='localhost'))
+host=host))
             channel = connection.channel()
         else:
             print " [x] Sent {}".format(line.rstrip())
@@ -31,7 +37,10 @@ host='localhost'))
 def read_from_stdin():
     global line_count
     for line in sys.stdin:
-        sendcommand(line)
+        if (line.split())[0] in codes:
+            sendcommand(codes[line.split())[0]])
+        else
+            sendcommand(line)
 
 def prompt_user():
     print 'Type "quit" to exit.'
