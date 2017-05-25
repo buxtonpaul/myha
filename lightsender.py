@@ -7,9 +7,9 @@ import string
 
 codes={
 
-    "837344":"doorbell",
+    "87344":"doorbell",
     "5592405":"pir",
-    "12346":"door"
+    "5332048":"door"
 }
 
 
@@ -40,19 +40,14 @@ def read_from_stdin():
 # else. Note timeout is zero so select won't block at all.
     while True:
         line = sys.stdin.readline()
-        print (line)
+        print "Debug {}".format(line)
         messge=line.split()
         if (messge[1] in codes):
-            sendcommand(codes[messge[1]])
+           print "Found {}".format(messge[1])
+           sendcommand(codes[messge[1]])
         else:
-            sendcommand(line)
-
-
-
-
-
-
-        
+	           print "not found {}".format(messge[1])
+       
 
 def prompt_user():
     print 'Type "quit" to exit.'
