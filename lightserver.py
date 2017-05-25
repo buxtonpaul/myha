@@ -76,7 +76,7 @@ with open("config.yml", 'r') as ymlfile:
             # check if the bridge is one we can handle then add it!
             if bridgeval["bridgetype"] == "mifi6":
                 print "Bridge {} @ {}".format(bridgekey, bridgeval["bridgeip"])
-                curbridge=Milightv6bridge(UDP_MAX_TRY=MAXTRIES)
+                curbridge=Milightv6bridge(IBOX_IP=bridgeval["bridgeip"],UDP_MAX_TRY=MAXTRIES)
                 for key, val in bridgeval.items():
                     if key == "rgbw":
                         print "Found RGBW lights {}".format(val)
@@ -111,16 +111,29 @@ with open("config.yml", 'r') as ymlfile:
     else:
         triggers = {}
 
+import os
+path=os.path.dirname(os.path.abspath(__file__))
+configfile=path+"/rabbitsettings.txt"
+
+conf= open(configfile,'r')
+params=(conf.readline()).split()
+user=params[0]
+passwd=params[1]
+host=params[2]
+rabqueue=params[3]
+
+
+credentials = pika.PlainCredentials(user, passwd)
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='localhost'))
+        host=host,credentials=rabqueue))
 channel = connection.channel()
 
-channel.queue_declare(queue='lightserver')
+channel.queue_declare(queue=rabqueue)
 
 
 channel.basic_consume(rabbitcallback,
-                      queue='lightserver',
+                      queue=rabqueue,
                       no_ack=True)
 
 print(' [*] Waiting for messages. To exit press CTRL+C')

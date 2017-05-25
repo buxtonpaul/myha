@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 import pika
 import sys
 import string
@@ -19,7 +19,7 @@ def sendcommand(line):
         line_count += 1
         try:
             channel.basic_publish(exchange='',
-                                  routing_key='lightserver', body=line.rstrip())
+                                  routing_key=rabqueue, body=line.rstrip())
         except pika.exceptions.ConnectionClosed:
             print "Connection was closed, retrying..."
             connection = pika.BlockingConnection(pika.ConnectionParameters(
@@ -42,17 +42,32 @@ def prompt_user():
         sendcommand(line)
 
 
+
+import os
+path=os.path.dirname(os.path.abspath(__file__))
+configfile=path+"/rabbitsettings.txt"
+
+conf= open(configfile,'r')
+params=(conf.readline()).split()
+user=params[0]
+passwd=params[1]
+host=params[2]
+rabqueue=params[3]
+
+
+credentials = pika.PlainCredentials(user, passwd)
 connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='localhost'))
+        host=host,credentials=credentials))
+
 channel = connection.channel()
 
-channel.queue_declare(queue='lightserver')
+channel.queue_declare(queue=rabqueue)
 
 if __name__ == "__main__":
-#    if '-' in sys.argv:
-#        read_from_stdin()
-#    else:
-#        prompt_user()
+    if '-' in sys.argv:
+        read_from_stdin()
+    elif '+' in sys.argv:
+        prompt_user()
     line=string.join(sys.argv[1:])
     sendcommand(line)
 connection.close()

@@ -91,3 +91,6 @@ ENV/
 .ropeproject
 # VS Code settings
 .vscode
+
+# project files
+rabbitsettings.txt
