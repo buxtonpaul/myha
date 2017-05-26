@@ -27,13 +27,11 @@ def sendcommand(line):
     while retries > 0:
         retries =retries -1
         try:
-            channel.basic_publish(exchange='', routing_key=rabqueue, body=line.rstrip())
-        except:
-            print "Something wasn't happy :-("
+            channel.basic_publish(exchange='',
+                                  routing_key=rabqueue, body=line.rstrip())
         else:
             print " [x] Sent {}".format(line.rstrip())
             break
-    connection.close()
 
 def read_from_stdin():
 # If there's input ready, do something, else do something
@@ -80,3 +78,4 @@ if __name__ == "__main__":
         prompt_user()
     line=string.join(sys.argv[1:])
     sendcommand(line)
+connection.close()
