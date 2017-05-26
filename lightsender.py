@@ -29,7 +29,7 @@ def sendcommand(line):
         except pika.exceptions.ConnectionClosed:
             print "Connection was closed, retrying..."
             connection = pika.BlockingConnection(pika.ConnectionParameters(
-host=host))
+host=host,credentials=credentials))
             channel = connection.channel()
         else:
             print " [x] Sent {}".format(line.rstrip())
