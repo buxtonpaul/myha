@@ -126,7 +126,7 @@ rabqueue=params[3]
 credentials = pika.PlainCredentials(user, passwd)
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host=host,credentials=rabqueue))
+        host=host,credentials=credentials))
 channel = connection.channel()
 
 channel.queue_declare(queue=rabqueue)
