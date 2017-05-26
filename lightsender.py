@@ -13,22 +13,25 @@ codes={
 }
 
 
-line_count = 0
 
 def sendcommand(line):
     
-    credentials = pika.PlainCredentials(user, passwd)
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-                                          host=host,credentials=credentials))
-    channel = connection.channel()
-    channel.queue_declare(queue=rabqueue)
    
     retries = 3
     while retries > 0:
         retries =retries -1
         try:
+            credentials = pika.PlainCredentials(user, passwd)
+            connection = pika.BlockingConnection(pika.ConnectionParameters(
+                                                  host=host,credentials=credentials))
+            channel = connection.channel()
+            channel.queue_declare(queue=rabqueue)
             channel.basic_publish(exchange='',
                                   routing_key=rabqueue, body=line.rstrip())
+            connection.close()
+
+        except:
+            print "Something went wrong, retrying!"
         else:
             print " [x] Sent {}".format(line.rstrip())
             break
@@ -78,4 +81,3 @@ if __name__ == "__main__":
         prompt_user()
     line=string.join(sys.argv[1:])
     sendcommand(line)
-connection.close()
