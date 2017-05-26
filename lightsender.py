@@ -16,21 +16,19 @@ codes={
 line_count = 0
 
 def sendcommand(line):
-    global line_count
+    
+    credentials = pika.PlainCredentials(user, passwd)
+    connection = pika.BlockingConnection(pika.ConnectionParameters(
+                                          host=host,credentials=credentials))
+    channel = connection.channel()
+    channel.queue_declare(queue=rabqueue)
+   
     retries = 3
-    global connection,channel   
     while retries > 0:
         retries =retries -1
-        
-        line_count += 1
         try:
             channel.basic_publish(exchange='',
                                   routing_key=rabqueue, body=line.rstrip())
-        except pika.exceptions.ConnectionClosed:
-            print "Connection was closed, retrying..."
-            connection = pika.BlockingConnection(pika.ConnectionParameters(
-host=host,credentials=credentials))
-            channel = connection.channel()
         else:
             print " [x] Sent {}".format(line.rstrip())
             break
@@ -71,13 +69,7 @@ host=params[2]
 rabqueue=params[3]
 
 
-credentials = pika.PlainCredentials(user, passwd)
-connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host=host,credentials=credentials))
 
-channel = connection.channel()
-
-channel.queue_declare(queue=rabqueue)
 
 if __name__ == "__main__":
     if '-' in sys.argv:
