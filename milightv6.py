@@ -120,6 +120,8 @@ class Milightv6bridge(object):
         ret = (preamble + [self.sessionid[0], self.sessionid[1], 0x00, self.cyclenr, 0x00] +
                bulbcommand + [zone, 0x00, checksum])
         self.cyclenr = self.cyclenr + 1
+        if self.cyclenr >=255:
+            self.cyclenr = 0
         return ret
 
     def close(self):
